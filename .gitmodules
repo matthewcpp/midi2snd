@@ -1,0 +1,6 @@
+[submodule "lib/tinysoundfont"]
+	path = lib/tinysoundfont
+	url = https://github.com/schellingb/TinySoundFont.git
+[submodule "lib/vcpkg"]
+	path = lib/vcpkg
+	url = https://github.com/microsoft/vcpkg
