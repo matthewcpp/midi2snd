@@ -2,14 +2,21 @@
 A small utility to synthesize midi files to sound files
 
 ### Building
+Ensure that you have cloned this repo using the `--recursive` option or run `git submodule init` to ensure that the required submodules have been populated.
+
+Begin by bootstrapping vcpkg and installig dependencies:
 ```shell
-# setup vcpkg
 lib/vcpkg/bootstrap-vcpkg.sh
+```
+or on windows:
 
-# install and build libsndfile dependency
-lib/vcpkg/vcpkg install libsndfile
+```shell
+.\lib\vcpkg\bootstrap-vcpkg.bat
+```
+Then configure and build the project with cmake:
 
-# configure cmake
+```shell
 mkdir build && cd build
 cmake ..
+cmake --build .
 ```
