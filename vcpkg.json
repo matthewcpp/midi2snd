@@ -1,0 +1,7 @@
+{
+  "name": "midi2snd",
+  "version": "0.0.1",
+  "dependencies": [
+    "libsndfile"
+  ]
+}
