@@ -10,22 +10,18 @@
 #include <iostream>
 #include <string>
 
+int convert_midi_file(tml_message* midi_file, tsf* soundfont, std::string const & dest_file_path);
+
 int main(int argc, char** argv) {
     if (argc < 4) {
-        std::cout << "./midi2ogg midi_file ogg_file sound_font" << std::endl;
+        std::cout << "Example usage:" << std::endl;
+        std::cout << "./midi2snd midi_file sound_font ogg_file" << std::endl;
         return 1;
     }
 
     std::string midi_file_path = argv[1];
-    std::string dest_file_path = argv[2];
-    std::string soundfont_file_path = argv[3];
-
-    tsf* soundfont = tsf_load_filename(soundfont_file_path.c_str());
-
-    if (!soundfont) {
-        std::cout << "Unable to load soundfont: " << soundfont_file_path;
-        return 1;
-    }
+    std::string soundfont_file_path = argv[2];
+    std::string dest_file_path = argv[3];
 
     tml_message* midi_file = tml_load_filename(midi_file_path.c_str());
 
@@ -34,6 +30,23 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    tsf* soundfont = tsf_load_filename(soundfont_file_path.c_str());
+
+    if (!soundfont) {
+        tsf_close(soundfont);
+        std::cout << "Unable to load soundfont: " << soundfont_file_path;
+        return 1;
+    }
+
+    int result = convert_midi_file(midi_file, soundfont, dest_file_path);
+
+    tsf_close(soundfont);
+    tml_free(midi_file);
+
+    return result;
+}
+
+int convert_midi_file(tml_message* midi_file, tsf* soundfont, std::string const & dest_file_path) {
     const int sample_rate = 44100;
     const int channel_count = 2;
     const int sample_count = 4096;
@@ -55,17 +68,17 @@ int main(int argc, char** argv) {
     double current_playback_time = 0.0f;
 
     while (current_message) {
-        int SampleCount = sample_count;
+        int samples_remaining = sample_count;
         float* data_ptr = sound_data.data();
 
-        for (int SampleBlock = TSF_RENDER_EFFECTSAMPLEBLOCK; SampleCount > 0; SampleCount -= SampleBlock) {
+        for (int sample_block = TSF_RENDER_EFFECTSAMPLEBLOCK; samples_remaining > 0; samples_remaining -= sample_block) {
 
             //We progress the MIDI playback and then process TSF_RENDER_EFFECTSAMPLEBLOCK samples at once
-            if (SampleBlock > SampleCount)
-                SampleBlock = SampleCount;
+            if (sample_block > samples_remaining)
+                sample_block = samples_remaining;
 
             //Loop through all MIDI messages which need to be played up until the current playback time
-            for (current_playback_time += SampleBlock * (1000.0 / static_cast<double>(sample_rate)); current_message && current_playback_time >= current_message->time; current_message = current_message->next)
+            for (current_playback_time += sample_block * (1000.0 / static_cast<double>(sample_rate)); current_message && current_playback_time >= current_message->time; current_message = current_message->next)
             {
                 switch (current_message->type)
                 {
@@ -88,16 +101,14 @@ int main(int argc, char** argv) {
             }
 
             // Render the block of audio samples in float format
-            tsf_render_float(soundfont, data_ptr, SampleBlock, 0);
-            data_ptr += SampleBlock * 2;
+            tsf_render_float(soundfont, data_ptr, sample_block, 0);
+            data_ptr += sample_block * 2;
         }
 
         sf_write_float(dest_file, sound_data.data(), sound_data.size());
     }
 
     sf_close(dest_file);
-    tsf_close(soundfont);
-    tml_free(midi_file);
 
     return 0;
 }
